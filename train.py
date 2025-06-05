@@ -105,4 +105,4 @@ class Trainer(torch.nn.Module):
 
         torch.clamp(images, 0, 1)
         grid = make_grid(images, nrow=8, normalize=True)
-        save_image(grid, f"{self.sample_dir}/latent_sample_val_{epoch:08d}.png", normalize=False)
+        save_image(grid, f"{self.sample_dir}/latent_sample_val_{epoch+1:08d}.png", normalize=False)

@@ -17,7 +17,7 @@ class NormalizingFlow(nn.Module):
                     nn.Linear(c_in, 512),
                     nn.BatchNorm1d(512),
                     nn.ReLU(),
-                    nn.Dropout(0.05),
+                    nn.Dropout(0.1),
                     nn.Linear(512, c_out)
                 ),
                 'clamp': 1.5}

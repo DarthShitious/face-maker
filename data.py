@@ -36,8 +36,8 @@ class ImageLoader(torch.utils.data.Dataset):
         image_path = self.image_paths[idx]
         image = self.load_image(image_path)
         image = self.square_crop_transform(image)
-        # image = image + torch.randn_like(image)*0.01
-        # image = torch.clamp(image, 0, 1)
+        image = image + torch.randn_like(image)*0.1
+        image = torch.clamp(image, 0, 1)
         return image, image
     
     def load_image(self, image_path):
