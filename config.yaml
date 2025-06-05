@@ -1,0 +1,10 @@
+BATCH_SIZE: 64
+EPOCHS: 10000
+LEARNING_RATE: 0.0005
+WEIGHT_DECAY: 0.0001
+IMAGE_SIZE: 32
+IMAGE_DIRS: ["/home/tabbott/human-and-non-human/training_set/training_set/humans",
+                "/home/tabbott/human-and-non-human/test_set/test_set/humans"]
+
+SAVE_EVERY: 5
+PRETRAINED_MODEL_PATH: #"results/20250604_230524/model_epoch.pth"
