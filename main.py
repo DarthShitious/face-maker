@@ -69,7 +69,7 @@ if __name__ == "__main__":
     if config["PRETRAINED_MODEL_PATH"] is not None:
         if os.path.exists(config["PRETRAINED_MODEL_PATH"]):
             print(f"Loading pretrained weights from {config['PRETRAINED_MODEL_PATH']}")
-            model.load_state_dict(torch.load(config["PRETRAINED_MODEL_PATH"], map_location=device))
+            model.load_state_dict(torch.load(config["PRETRAINED_MODEL_PATH"], map_location=device), strict=False)
 
     optimizer = AdamW(model.parameters(), lr=config["LEARNING_RATE"], weight_decay=config["WEIGHT_DECAY"])
 

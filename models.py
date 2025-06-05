@@ -14,10 +14,11 @@ class NormalizingFlow(nn.Module):
             nodes.append(Node(nodes[-1], PermuteRandom, {'seed': k}))
             nodes.append(Node(nodes[-1], GLOWCouplingBlock, 
                 {'subnet_constructor': lambda c_in, c_out: nn.Sequential(
-                    nn.Linear(c_in, 64),
-                    nn.BatchNorm1d(64),
+                    nn.Linear(c_in, 512),
+                    nn.BatchNorm1d(512),
                     nn.ReLU(),
-                    nn.Linear(64, c_out)
+                    nn.Dropout(0.05),
+                    nn.Linear(512, c_out)
                 ),
                 'clamp': 1.5}
             ))
