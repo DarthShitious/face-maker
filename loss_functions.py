@@ -20,7 +20,7 @@ def mae_loss(output, target):
     """
     Mean Absolute Error Loss
     """
-    return torch.mean(torch.abs(output - target))   
+    return torch.mean(torch.abs(output - target))
 
 def kl_divergence(mu, logvar):
     """
@@ -47,9 +47,41 @@ def covariance_loss(z):
     return loss
 
 
-def flow_loss(z, log_jac_det):
-    # Assume prior is standard Gaussian
-    prior = torch.distributions.Normal(0, 1)
-    log_p_z = prior.log_prob(z).sum(dim=1)
-    loss = -(log_p_z + log_jac_det)
-    return loss.mean()
+# def flow_loss(z, log_jac_det):
+#     # Normalize both terms per element
+#     B = z.size(0)
+#     D = z[0].numel()
+#     prior = torch.distributions.Normal(0, 1)
+
+#     log_p_z = prior.log_prob(z).view(B, -1).sum(dim=1)
+#     loss = (-log_p_z + log_jac_det) / D
+#     return loss.mean()
+
+def flow_loss_func(z, log_jac_det):
+    # log_jac_det *= 0
+    B = z.size(0)
+    D = z[0].numel()
+
+    # log p(z) under standard normal: -0.5 * (z^2 + log(2π))
+    log_p_z = -0.5 * (z**2 + torch.log(torch.tensor(2 * torch.pi))).view(B, -1).sum(dim=1)
+
+    # log_prob + log_det => full log-likelihood
+    log_likelihood = log_p_z + log_jac_det  # shape [B]
+
+    # Return negative log-likelihood per dim
+    nll = -log_likelihood / D
+
+    # penalize large ljd
+    ljd_penalty = 0.0001 * (log_jac_det ** 2)
+
+    # print("ljd penalty:      ",  ljd_penalty.mean().item())
+    # print("log_p_z.mean():",     log_p_z.mean().item())
+    # print("log_jac_det.mean():", log_jac_det.mean().item())
+    # print("nll.mean():",         nll.mean().item())
+
+    return nll.mean() + ljd_penalty.mean()
+
+
+
+def recon_loss(original, recon):
+    return torch.pow(original - recon, 2).mean()
