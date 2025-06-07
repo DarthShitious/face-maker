@@ -35,9 +35,16 @@ if __name__ == "__main__":
 
     # Create dataloaders
     data_train = CelebALoader(root="data", split="train", image_size=config["IMAGE_SIZE"], download=True)
-    data_train = Subset(data_train, range(config["TRAIN_SIZE"]))
+    data_train = Subset(
+        data_train,
+        range(min(config["TRAIN_SIZE"], len(data_train)))
+    )
+    
     data_val = CelebALoader(root="data", split="valid", image_size=config["IMAGE_SIZE"], download=True)
-    data_val = Subset(data_val, range(config["TEST_SIZE"]))
+    data_val = Subset(
+        data_val,
+        range(min(config["TEST_SIZE"], len(data_val)))
+    )
 
     dataloader_train = DataLoader(data_train, batch_size=config["BATCH_SIZE"], shuffle=True)
     dataloader_val = DataLoader(data_val, batch_size=config["BATCH_SIZE"], shuffle=False)
