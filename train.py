@@ -26,7 +26,7 @@ class Trainer(torch.nn.Module):
         self.scheduler = scheduler
         self.sample_dir = sample_dir
         self.latent_dims = 3 * self.config["IMAGE_SIZE"] * self.config["IMAGE_SIZE"]
-        self.pert = config["PERT"] / self.latent_dims**0.5
+        self.pert = config["PERT"]
         self.lambda_recon = config["LAMBDA_RECON"]
         self.lambda_smooth = config["LAMBDA_SMOOTH"]
 
@@ -36,12 +36,8 @@ class Trainer(torch.nn.Module):
     def train_epoch(self, data_loader):
         self.model.train()
         total_loss = 0.0
-        ################# Remove after debugging ###############
-        from itertools import islice
-        num_steps = 100
-        for images in tqdm(islice(data_loader, num_steps)):
-        ########################################################
-        # for images in tqdm(data_loader):
+
+        for images in tqdm(data_loader):
             # Load images into tensors
             images = images.to(self.device)
 
@@ -90,7 +86,7 @@ class Trainer(torch.nn.Module):
             # Add to total loss
             total_loss += loss.item()
 
-        return total_loss / num_steps #len(data_loader)
+        return total_loss / len(data_loader)
 
     def validate_epoch(self, data_loader):
         self.model.eval()
