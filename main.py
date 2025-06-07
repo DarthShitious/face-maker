@@ -8,6 +8,8 @@ import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+import numpy as np
+import random
 
 from train import Trainer
 from models import CNNRealNVPFlow
@@ -67,15 +69,15 @@ if __name__ == "__main__":
     # Train
     train_losses = []
     val_losses = []
+    best_loss = np.inf
+    best_epoch = 0
     for epoch in tqdm(range(config["EPOCHS"])):
         print(f"Epoch {epoch + 1}/{config['EPOCHS']}")
 
         # Create data loaders
-        data_train = Subset(
-            data_train_full,
-            range(min(config["TRAIN_SIZE"], len(data_train_full)))
-        )
-        
+        subset_indices = random.sample(range(len(data_train_full)), config["TRAIN_SIZE"])
+        data_train = Subset(data_train_full, subset_indices)
+
         data_val = Subset(
             data_val_full,
             range(min(config["TEST_SIZE"], len(data_val_full)))
@@ -100,11 +102,16 @@ if __name__ == "__main__":
         val_loss = trainer.validate_epoch(data_loader=dataloader_val)
         print(f"Validation loss: {val_loss:.4f}")
 
+        if val_loss < best_loss:
+            print(f"New best loss!")
+            torch.save(model.state_dict(), f"{results_dir}/best_model.pth")
+            best_epoch = epoch
+
         train_losses.append(train_loss)
         val_losses.append(val_loss)
 
         if (epoch + 1) % config["SAVE_EVERY"] == 0:
-            torch.save(model.state_dict(), f"{results_dir}/model_epoch.pth")
+            torch.save(model.state_dict(), f"{results_dir}/current_model.pth")
             print(f"Model saved at epoch {epoch + 1}")
 
             # Plot training and validation losses
@@ -113,7 +120,7 @@ if __name__ == "__main__":
             plt.plot(val_losses, label='Validation Loss', color='orange')
             plt.xlabel('Epochs')
             plt.ylabel('Loss')
-            # plt.ylim(0, 1.5)
+            plt.ylim(0, 1)
             plt.title('Training and Validation Losses')
             plt.legend()
             plt.grid("both")

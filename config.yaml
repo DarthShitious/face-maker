@@ -1,4 +1,4 @@
-BATCH_SIZE: 64
+BATCH_SIZE: 32
 EPOCHS: 10000
 TRAIN_SIZE: 10000
 TEST_SIZE: 10000
@@ -9,8 +9,8 @@ IMAGE_DIRS: ["/home/tabbott/human-and-non-human/training_set/training_set/humans
              "/home/tabbott/human-and-non-human/test_set/test_set/humans"]
 
 SAVE_EVERY: 1
-PRETRAINED_MODEL_PATH:
+PRETRAINED_MODEL_PATH: 
 
-LAMBDA_RECON: 1.0
-LAMBDA_SMOOTH: 1.0
+LAMBDA_RECON: 0.05
+LAMBDA_SMOOTH: 0.001
 PERT: 0.05

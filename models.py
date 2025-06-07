@@ -104,7 +104,7 @@ class CNNRealNVPFlow(nn.Module):
         self.input_shape = input_shape  # e.g., (C, H, W)
 
         nodes = [InputNode(*input_shape, name='input')]
-        for k in range(8):
+        for k in range(16):
             nodes.append(Node(nodes[-1], PermuteRandom, {'seed': k}))
             nodes.append(Node(
                 nodes[-1],
