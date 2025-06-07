@@ -31,7 +31,7 @@ class Trainer(torch.nn.Module):
         self.lambda_smooth = config["LAMBDA_SMOOTH"]
 
         # Make directories for results
-        [os.makedirs(os.path.join(self.sample_dir, p), exist_ok=True) for p in ['generation', 'reconstruction']]
+        [os.makedirs(os.path.join(self.sample_dir, p, q), exist_ok=True) for p in ['generation', 'reconstruction'] for q in ['raw', 'clamped', 'sigmoid']]
 
     def train_epoch(self, data_loader):
         self.model.train()
@@ -142,14 +142,14 @@ class Trainer(torch.nn.Module):
             print(f"STDev image value:   {images.std()}")
 
         grid = make_grid(images, nrow=8, normalize=True)
-        save_image(grid, f"{self.sample_dir}/generation/sample_{epoch+1:08d}.png", normalize=True)
+        save_image(grid, f"{self.sample_dir}/generation/raw/sample_{epoch+1:08d}.png", normalize=True)
 
         grid = make_grid(torch.sigmoid(images), nrow=8, normalize=True)
-        save_image(grid, f"{self.sample_dir}/generation/sample_sigmoid_{epoch+1:08d}.png", normalize=True)
+        save_image(grid, f"{self.sample_dir}/generation/sigmoid/sample_sigmoid_{epoch+1:08d}.png", normalize=True)
 
         torch.clamp(images, 0, 1)
         grid = make_grid(images, nrow=8, normalize=False)
-        save_image(grid, f"{self.sample_dir}/generation/sample_clamped_{epoch+1:08d}.png", normalize=False)
+        save_image(grid, f"{self.sample_dir}/generation/clamped/sample_clamped_{epoch+1:08d}.png", normalize=False)
 
     def validate_recon(self, data_loader, epoch: int):
         self.model.eval()
@@ -173,17 +173,17 @@ class Trainer(torch.nn.Module):
 
         # Save grid with normalization
         grid = make_grid(comps, nrow=8, normalize=True)
-        save_image(grid, f"{self.sample_dir}/reconstruction/sample_{epoch+1:08d}.png", normalize=True)
+        save_image(grid, f"{self.sample_dir}/reconstruction/raw/sample_{epoch+1:08d}.png", normalize=True)
 
         # Save grid with clamping
         comps_clamped = torch.clamp(comps, 0, 1)
         grid_clamped = make_grid(comps_clamped, nrow=8, normalize=False)
-        save_image(grid_clamped, f"{self.sample_dir}/reconstruction/sample_clamped_{epoch+1:08d}.png", normalize=False)
+        save_image(grid_clamped, f"{self.sample_dir}/reconstruction/clamped/sample_clamped_{epoch+1:08d}.png", normalize=False)
 
         # Save grid with sigmoid
         comps_sigmoid = torch.sigmoid(comps)
         grid_sigmoid = make_grid(comps_sigmoid, nrow=8, normalize=False)
-        save_image(grid_sigmoid, f"{self.sample_dir}/reconstruction/sample_sigmoid_{epoch+1:08d}.png", normalize=False)
+        save_image(grid_sigmoid, f"{self.sample_dir}/reconstruction/sigmoid/sample_sigmoid_{epoch+1:08d}.png", normalize=False)
 
     def sample_grid(self, data_loader, filename="sample_grid.png"):
         # Sample images
