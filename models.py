@@ -3,6 +3,52 @@ import torch.nn as nn
 from FrEIA.framework import InputNode, OutputNode, Node, GraphINN
 from FrEIA.modules import GLOWCouplingBlock, PermuteRandom, RNVPCouplingBlock
 
+class ActNorm2d(nn.Module):
+    """
+    Activation Normalization for invertible flows (Glow).
+    Initializes scale and bias per channel on the first batch,
+    then becomes a standard, learnable affine transform.
+
+    Input:  [B, C, H, W]
+    Output: [B, C, H, W]
+    """
+    def __init__(self, num_channels):
+        super().__init__()
+        self.initialized = False
+
+        self.bias = nn.Parameter(torch.zeros(1, num_channels, 1, 1))
+        self.log_scale = nn.Parameter(torch.zeros(1, num_channels, 1, 1))
+
+    def initialize_parameters(self, x):
+        # x: [B, C, H, W]
+        with torch.no_grad():
+            # Compute mean and std over batch, height, and width (per channel)
+            mean = x.mean(dim=[0, 2, 3], keepdim=True)    # shape: [1, C, 1, 1]
+            std = x.std(dim=[0, 2, 3], keepdim=True)
+            self.bias.data = -mean
+            self.log_scale.data = torch.log(1.0 / (std + 1e-6))  # So that after transform, std ≈ 1
+
+    def forward(self, x, logdet=None, reverse=False):
+        if not self.initialized:
+            self.initialize_parameters(x)
+            self.initialized = True
+
+        if reverse:
+            x = (x - self.bias) * torch.exp(-self.log_scale)
+        else:
+            x = x * torch.exp(self.log_scale) + self.bias
+
+        if logdet is not None:
+            B, C, H, W = x.shape
+            dlogdet = H * W * torch.sum(self.log_scale)
+            if reverse:
+                logdet = logdet - dlogdet
+            else:
+                logdet = logdet + dlogdet
+            return x, logdet
+        else:
+            return x
+
 class NormalizingFlow(nn.Module):
     def __init__(self, input_shape):
         super().__init__()
@@ -43,10 +89,10 @@ def cnn_subnet(in_channels, out_channels):
     h_size = 64
     return nn.Sequential(
         nn.Conv2d(in_channels, h_size, kernel_size=3, padding=1),
-        nn.BatchNorm2d(h_size),
+        ActNorm2d(h_size),
         nn.GELU(),
         nn.Conv2d(h_size, h_size, kernel_size=1),
-        nn.BatchNorm2d(h_size),
+        ActNorm2d(h_size),
         nn.GELU(),
         nn.Conv2d(h_size, out_channels, kernel_size=3, padding=1)
     )
