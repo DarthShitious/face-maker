@@ -40,7 +40,7 @@ class NormalizingFlow(nn.Module):
 
 # CNN Subnetwork constructor for RealNVP blocks
 def cnn_subnet(in_channels, out_channels):
-    h_size = 32
+    h_size = 64
     return nn.Sequential(
         nn.Conv2d(in_channels, h_size, kernel_size=3, padding=1),
         nn.BatchNorm2d(h_size),

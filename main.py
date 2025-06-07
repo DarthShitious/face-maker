@@ -9,9 +9,8 @@ matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from data import ImageLoader
 from train import Trainer
-from models import Autoencoder, NormalizingFlow, CNNRealNVPFlow
+from models import CNNRealNVPFlow
 from data import CelebALoader
 
 

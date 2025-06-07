@@ -1,11 +1,10 @@
+import os
 import torch
 from torchvision.utils import save_image, make_grid
 from tqdm import tqdm
 
 from loss_functions import huber_loss, flow_loss_func
-from rich.console import Console
-from rich.table import Table
-from rich.live import Live
+
 
 # Trainer class for training a model
 class Trainer(torch.nn.Module):
@@ -26,14 +25,13 @@ class Trainer(torch.nn.Module):
         self.device = device
         self.scheduler = scheduler
         self.sample_dir = sample_dir
+        self.latent_dims = 3 * self.config["IMAGE_SIZE"] * self.config["IMAGE_SIZE"]
+        self.pert = config["PERT"] / self.latent_dims**0.5
+        self.lambda_recon = config["LAMBDA_RECON"]
+        self.lambda_smooth = config["LAMBDA_SMOOTH"]
 
-    def sample_grid(self, data_loader, filename="sample_grid.png"):
-        # Sample images
-        images = next(iter(data_loader))
-
-        # Save smaple grid
-        grid = make_grid(images, nrow=8, normalize=True)
-        save_image(grid, f"{self.sample_dir}/{filename}", normalize=True)
+        # Make directories for results
+        [os.makedirs(os.path.join(self.sample_dir, p), exist_ok=True) for p in ['generation', 'reconstruction']]
 
     def train_epoch(self, data_loader):
         self.model.train()
@@ -59,13 +57,13 @@ class Trainer(torch.nn.Module):
             z_rand = torch.randn_like(z)
 
             # Perturb that point just a bit...
-            z_randpert = z_rand + torch.randn_like(z) * 0.05
+            z_randpert = z_rand + torch.randn_like(z) * self.pert
 
             # Calculate loss
             flow_loss = flow_loss_func(z, ljd)
-            recon_loss = huber_loss(images, images_recon)
-            smooth_loss = huber_loss(self.model(z_rand, reverse=True), self.model(z_randpert, reverse=True))
-            loss = flow_loss + 0.1 * recon_loss + 0.1 * smooth_loss
+            recon_loss = huber_loss(images, images_recon) * self.lambda_recon
+            smooth_loss = huber_loss(self.model(z_rand, reverse=True), self.model(z_randpert, reverse=True)) * self.lambda_smooth
+            loss = flow_loss + recon_loss + smooth_loss
 
             # Not-so fancy progress reporting
             print("_" * 80)
@@ -111,13 +109,13 @@ class Trainer(torch.nn.Module):
                 z_rand = torch.randn_like(z)
 
                 # Perturb that point just a bit...
-                z_randpert = z_rand + torch.randn_like(z) * 0.05
+                z_randpert = z_rand + torch.randn_like(z) * self.pert
 
                 # Calculate loss
                 flow_loss_val = flow_loss_func(z, ljd)
-                recon_loss_val = huber_loss(images, images_recon)
-                smooth_loss_val = huber_loss(self.model(z_rand, reverse=True), self.model(z_randpert, reverse=True))
-                loss_val = flow_loss_val + 0.1 * recon_loss_val + 0.1 * smooth_loss_val
+                recon_loss_val = huber_loss(images, images_recon) * self.lambda_recon
+                smooth_loss_val = huber_loss(self.model(z_rand, reverse=True), self.model(z_randpert, reverse=True)) * self.lambda_smooth
+                loss_val = flow_loss_val + recon_loss_val + smooth_loss_val
 
                 # Not-so fancy progress reporting
                 print("-" * 80)
@@ -137,54 +135,61 @@ class Trainer(torch.nn.Module):
 
         with torch.no_grad():
             z = torch.randn(64, 3, self.config["IMAGE_SIZE"], self.config["IMAGE_SIZE"]).to(self.device)
-            images = self.model(z, reverse=True) * 0.5
+            images = self.model(z, reverse=True)
             print(f"Maximum image value: {images.max()}")
             print(f"Minimum image value: {images.min()}")
             print(f"Mean image value:    {images.mean()}")
             print(f"STDev image value:   {images.std()}")
 
         grid = make_grid(images, nrow=8, normalize=True)
-        save_image(grid, f"{self.sample_dir}/latent_sample_val_{epoch+1:08d}.png", normalize=True)
+        save_image(grid, f"{self.sample_dir}/generation/sample_{epoch+1:08d}.png", normalize=True)
 
         grid = make_grid(torch.sigmoid(images), nrow=8, normalize=True)
-        save_image(grid, f"{self.sample_dir}/latent_sample_val_sigmoid_{epoch+1:08d}.png", normalize=True)
+        save_image(grid, f"{self.sample_dir}/generation/sample_sigmoid_{epoch+1:08d}.png", normalize=True)
 
         torch.clamp(images, 0, 1)
         grid = make_grid(images, nrow=8, normalize=False)
-        save_image(grid, f"{self.sample_dir}/latent_sample_val_clamped_{epoch+1:08d}.png", normalize=False)
+        save_image(grid, f"{self.sample_dir}/generation/sample_clamped_{epoch+1:08d}.png", normalize=False)
 
     def validate_recon(self, data_loader, epoch: int):
         self.model.eval()
 
-        # Get one batch of images
-        images = next(iter(data_loader))
-        images = images[:8].to(self.device)  # First 8 images, move to correct device
+        with torch.no_grad():
+            # Get one batch of images
+            images = next(iter(data_loader))
+            images = images[:8].to(self.device)  # First 8 images, move to correct device
 
-        # Forward: image → z
-        z, _ = self.model(images)  # Forward pass (get z, ignore log_jac_det)
+            # Forward: image → z
+            z, _ = self.model(images)  # Forward pass (get z, ignore log_jac_det)
 
-        # Reverse: z → recon_image
-        recons = self.model(z, reverse=True)
+            # Reverse: z → recon_image
+            recons = self.model(z, reverse=True)
 
-        # Reverse w/ noise: z + noise -> recon_image
-        recons_noise = self.model(z + torch.randn_like(z) * 0.05, reverse=True)
+            # Reverse w/ noise: z + noise -> recon_image
+            recons_noise = self.model(z + torch.randn_like(z) * self.pert * 2, reverse=True)
 
         # Stack original and reconstructions for comparison
         comps = torch.cat([images, recons, recons_noise], dim=0)  # cat, not concatenate, for torch
 
         # Save grid with normalization
         grid = make_grid(comps, nrow=8, normalize=True)
-        save_image(grid, f"{self.sample_dir}/recon_sample_val_{epoch+1:08d}.png", normalize=True)
+        save_image(grid, f"{self.sample_dir}/reconstruction/sample_{epoch+1:08d}.png", normalize=True)
 
         # Save grid with clamping
         comps_clamped = torch.clamp(comps, 0, 1)
         grid_clamped = make_grid(comps_clamped, nrow=8, normalize=False)
-        save_image(grid_clamped, f"{self.sample_dir}/recon_sample_val_clamped_{epoch+1:08d}.png", normalize=False)
+        save_image(grid_clamped, f"{self.sample_dir}/reconstruction/sample_clamped_{epoch+1:08d}.png", normalize=False)
 
         # Save grid with sigmoid
         comps_sigmoid = torch.sigmoid(comps)
         grid_sigmoid = make_grid(comps_sigmoid, nrow=8, normalize=False)
-        save_image(grid_sigmoid, f"{self.sample_dir}/recon_sample_val_sigmoid_{epoch+1:08d}.png", normalize=False)
+        save_image(grid_sigmoid, f"{self.sample_dir}/reconstruction/sample_sigmoid_{epoch+1:08d}.png", normalize=False)
 
+    def sample_grid(self, data_loader, filename="sample_grid.png"):
+        # Sample images
+        images = next(iter(data_loader))
 
+        # Save smaple grid
+        grid = make_grid(images, nrow=8, normalize=True)
+        save_image(grid, f"{self.sample_dir}/{filename}", normalize=True)
 
