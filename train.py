@@ -38,7 +38,8 @@ class Trainer(torch.nn.Module):
         total_loss = 0.0
         ################# Remove after debugging ###############
         from itertools import islice
-        for images in tqdm(islice(data_loader, 100)):
+        num_steps = 100
+        for images in tqdm(islice(data_loader, num_steps)):
         ########################################################
         # for images in tqdm(data_loader):
             # Load images into tensors
@@ -89,7 +90,7 @@ class Trainer(torch.nn.Module):
             # Add to total loss
             total_loss += loss.item()
 
-        return total_loss / len(data_loader)
+        return total_loss / num_steps #len(data_loader)
 
     def validate_epoch(self, data_loader):
         self.model.eval()
@@ -128,7 +129,7 @@ class Trainer(torch.nn.Module):
                 # Add to total loss
                 total_loss += loss_val.item()
 
-        return total_loss / 1000 #len(data_loader) <-------------------------------------------------
+        return total_loss / len(data_loader)
 
     def validate_reverse(self, epoch: int):
         self.model.eval()
