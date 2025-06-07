@@ -34,23 +34,8 @@ if __name__ == "__main__":
     print(f"Using device: {device}")
 
     # Create dataloaders
-    data_train = CelebALoader(root="data", split="train", image_size=config["IMAGE_SIZE"], download=True)
-    data_train = Subset(
-        data_train,
-        range(min(config["TRAIN_SIZE"], len(data_train)))
-    )
-    
-    data_val = CelebALoader(root="data", split="valid", image_size=config["IMAGE_SIZE"], download=True)
-    data_val = Subset(
-        data_val,
-        range(min(config["TEST_SIZE"], len(data_val)))
-    )
-
-    dataloader_train = DataLoader(data_train, batch_size=config["BATCH_SIZE"], shuffle=True)
-    dataloader_val = DataLoader(data_val, batch_size=config["BATCH_SIZE"], shuffle=False)
-
-    print(f"Number of images in training set: {len(data_train)}")
-    print(f"Number of images in validation set: {len(data_val)}")
+    data_train_full = CelebALoader(root="data", split="train", image_size=config["IMAGE_SIZE"], download=True)
+    data_val_full = CelebALoader(root="data", split="valid", image_size=config["IMAGE_SIZE"], download=True)
 
     # Instantiate model
     model = CNNRealNVPFlow(input_shape=(3, config["IMAGE_SIZE"], config["IMAGE_SIZE"])).to(device)
@@ -79,15 +64,33 @@ if __name__ == "__main__":
         device=device
     )
 
-    # Sample datasets
-    trainer.sample_grid(data_loader=dataloader_train, filename="sample_grid_train.png")
-    trainer.sample_grid(data_loader=dataloader_val, filename="sample_grid_val.png")
-
     # Train
     train_losses = []
     val_losses = []
     for epoch in tqdm(range(config["EPOCHS"])):
         print(f"Epoch {epoch + 1}/{config['EPOCHS']}")
+
+        # Create data loaders
+        data_train = Subset(
+            data_train_full,
+            range(min(config["TRAIN_SIZE"], len(data_train_full)))
+        )
+        
+        data_val = Subset(
+            data_val_full,
+            range(min(config["TEST_SIZE"], len(data_val_full)))
+        )
+
+        dataloader_train = DataLoader(data_train, batch_size=config["BATCH_SIZE"], shuffle=True)
+        dataloader_val = DataLoader(data_val, batch_size=config["BATCH_SIZE"], shuffle=False)
+
+        print(f"Number of images in training set: {len(data_train)}")
+        print(f"Number of images in validation set: {len(data_val)}")
+
+        # Sample datasets
+        if epoch == 0:
+            trainer.sample_grid(data_loader=dataloader_train, filename="sample_grid_train.png")
+            trainer.sample_grid(data_loader=dataloader_val, filename="sample_grid_val.png")
 
         # Train for one epoch
         train_loss = trainer.train_epoch(data_loader=dataloader_train)

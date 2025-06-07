@@ -9,7 +9,7 @@ IMAGE_DIRS: ["/home/tabbott/human-and-non-human/training_set/training_set/humans
              "/home/tabbott/human-and-non-human/test_set/test_set/humans"]
 
 SAVE_EVERY: 1
-PRETRAINED_MODEL_PATH: 
+PRETRAINED_MODEL_PATH:
 
 LAMBDA_RECON: 1.0
 LAMBDA_SMOOTH: 1.0

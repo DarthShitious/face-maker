@@ -72,7 +72,7 @@ def flow_loss_func(z, log_jac_det):
     nll = -log_likelihood / D
 
     # penalize large ljd
-    ljd_penalty = 0.0001 * (log_jac_det ** 2)
+    ljd_penalty = 0.00001 * (log_jac_det ** 2)
 
     # print("ljd penalty:      ",  ljd_penalty.mean().item())
     # print("log_p_z.mean():",     log_p_z.mean().item())
