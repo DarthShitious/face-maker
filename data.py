@@ -33,7 +33,7 @@ class CelebALoader(torch.utils.data.Dataset):
         )
 
         self.square_crop_transform = SquareCropTransform(size=(image_size, image_size))
-        self.hflip = RandomHorizontalFlip(0.5)
+        self.hflip = RandomHorizontalFlip(0.0)
         
     def __len__(self):
         return len(self.dataset)
