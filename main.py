@@ -31,6 +31,10 @@ if __name__ == "__main__":
     # Load configuration from YAML file
     config = yaml.safe_load(open("config.yaml", "r"))
 
+    # Save a copy of the configuration
+    with open(os.path.join(results_dir, "config.yaml"), "w") as f:
+        yaml.safe_dump(config, f)
+
     # Set device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
